@@ -1,0 +1,106 @@
+// Vertex shader
+const vertexShaderSource = `
+attribute vec3 vertex;
+attribute vec3 normal;
+attribute vec2 texCoord;
+varying vec3 normalInterp;
+uniform mat4 ModelViewMatrix;
+uniform mat4 ProjectionMatrix;
+uniform mat4 NormalMatrix;
+uniform vec3 lightPos;
+varying vec4 color;
+varying vec2 v_texcoord;
+
+uniform vec3 translateUP;
+uniform vec2 userPoint;
+uniform float rotA;
+varying float col;
+
+mat4 translation(float tx, float ty, float tz) {
+    mat4 dst;
+
+    dst[0][0] = 1.0;
+    dst[0][ 1] = 0.0;
+    dst[0][ 2] = 0.0;
+    dst[0][ 3] = 0.0;
+    dst[1][ 0] = 0.0;
+    dst[1][ 1] = 1.0;
+    dst[1][ 2] = 0.0;
+    dst[1][ 3] = 0.0;
+    dst[2][ 0] = 0.0;
+    dst[2][ 1] = 0.0;
+    dst[2][ 2] = 1.0;
+    dst[2][ 3] = 0.0;
+    dst[3][ 0] = tx;
+    dst[3][ 1] = ty;
+    dst[3][ 2] = tz;
+    dst[3][ 3] = 1.0;
+    return dst;
+  }
+
+mat4 zrotation(float angleInRadians) {
+    mat4 dst;
+    float c = cos(angleInRadians);
+    float s = sin(angleInRadians);
+
+    dst[0][0] = c;
+    dst[0][ 1] = s;
+    dst[0][ 2] = 0.0;
+    dst[0][ 3] = 0.0;
+    dst[1][ 0] = -s;
+    dst[1][ 1] = c;
+    dst[1][ 2] = 0.0;
+    dst[1][ 3] = 0.0;
+    dst[2][ 0] = 0.0;
+    dst[2][ 1] = 0.0;
+    dst[2][ 2] = 1.0;
+    dst[2][ 3] = 0.0;
+    dst[3][ 0] = 0.0;
+    dst[3][ 1] = 0.0;
+    dst[3][ 2] = 0.0;
+    dst[3][ 3] = 1.0;
+
+    return dst;
+  }
+
+void main() {
+    col=rotA;
+    mat4 rotate = zrotation(rotA);
+    mat4 translate1 = translation(userPoint.x,userPoint.y,0.0);
+    mat4 translate2 = translation(-userPoint.x,-userPoint.y,0.0);
+    vec4 texCoordTr1 = vec4(texCoord,0.0,0.0)*translate1;
+    vec4 texCoordRot = texCoordTr1*rotate;
+    vec4 texCoordTr2 = texCoordRot*translate2;
+    v_texcoord = vec2(texCoordTr2.x,texCoordTr2.y);;
+    vec4 nV = ModelViewMatrix*vec4(vertex,1.0);
+    if (rotA>137.0)
+    {
+        nV = translation(translateUP.x,translateUP.y,translateUP.z)*nV;
+    }
+    gl_Position = ProjectionMatrix * nV;
+    }
+`;
+
+
+// Fragment shader
+const fragmentShaderSource = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+varying vec4 color;
+varying vec2 v_texcoord;
+varying float col;
+
+uniform sampler2D tmu;
+
+void main() {
+    vec4 texColor = texture2D(tmu, v_texcoord);
+     if (col>137.0) 
+    {
+      texColor = vec4(1.0,1.0,1.0,1.0);
+      }
+    gl_FragColor = texColor;
+}`;
