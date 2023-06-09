@@ -269,11 +269,11 @@ function draw() {
     video
   );
   triangles.Draw();
-  let aclRotation = m4.multiply(m4.axisRotation([1, 0, 0], -0.5 * Math.PI * acl.y * 0.1), m4.axisRotation([0, 1, 0], -0.5 * Math.PI * acl.x * 0.1))
+  let aclRotation = m4.multiply(m4.axisRotation([1, 0, 0], -0.5 * Math.PI * acl.x * 0.1), m4.axisRotation([0, 1, 0], -0.5 * Math.PI * acl.y * 0.1))
   gl.uniformMatrix4fv(
     shProgram.iModelViewMatrix,
     false,
-    m4.multiply(matAccum1, aclRotation)
+    matAccum1
   );
   sCam.setSpans();
   sCam.ApplyLeftFrustum();
@@ -303,9 +303,17 @@ function draw() {
   //   map(userPointCoord.x, 0, 1, -0.9, 0.9),
   //   map(userPointCoord.y, 0, 1, -0.9, 0.9)
   // );
-  // gl.uniform3fv(shProgram.iUP, [vUP.x, vUP.y, vUP.z]);
-  // gl.uniform1f(shProgram.irotAngle, 137.1); //giving rotation angle
-  // sphere.DrawPoint();
+  let vUP = {
+    x: (-0.5) * acl.x * 0.3,
+    y: (-0.5) * acl.y * 0.3,
+    z: (-0.5) * acl.z * 0.3
+  };
+  if (panner) {
+    panner.setPosition();
+  }
+  gl.uniform3fv(shProgram.iUP, [vUP.x, vUP.y, vUP.z]);
+  gl.uniform1f(shProgram.irotAngle, 137.1); //giving rotation angle
+  sphere.DrawPoint();
 }
 
 /* Initialize the WebGL context. Called from init() */
@@ -378,7 +386,7 @@ function initGL() {
   surface1.TextureBufferData(texts1);
   surface2.TextureBufferData(texts2);
 
-  sphere.BufferData(CreateSphereVerts(0.1));
+  sphere.BufferData(CreateSphereVerts(0.3));
 
   triangles = new Model('Plane');
   triangles.BufferData([0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0])
@@ -791,3 +799,64 @@ acl.addEventListener("reading", () => {
 });
 
 acl.start();
+
+
+let audio = null;
+let audioContext;
+let source;
+let panner;
+let filter;
+
+function AudioSetup() {
+  audio = document.getElementById('audio');
+
+  audio.addEventListener('play', () => {
+    console.log('play');
+    if (!audioContext) {
+      audioContext = new AudioContext();
+      source = audioContext.createMediaElementSource(audio);
+      panner = audioContext.createPanner();
+      filter = audioContext.createBiquadFilter();
+
+      // Connect audio nodes
+      source.connect(panner);
+      panner.connect(filter);
+      filter.connect(audioContext.destination);
+
+      // highshelf filter parameters
+      filter.type = 'highshelf';
+      filter.Q.value = 10;
+      filter.frequency.value = 500;
+      filter.gain.value = 18;
+      audioContext.resume();
+    }
+  })
+
+
+  audio.addEventListener('pause', () => {
+    console.log('pause');
+    audioContext.resume();
+  })
+}
+
+function startAudio() {
+  AudioSetup();
+
+  let filterCheckbox = document.getElementById('filterCheckbox');
+  filterCheckbox.addEventListener('change', function() {
+    if (filterCheckbox.checked) {
+      // Connect filter when checkbox is checked
+      panner.disconnect();
+      panner.connect(filter);
+      filter.connect(audioContext.destination);
+    } else {
+      // Disconnect filter when checkbox is unchecked
+      panner.disconnect();
+      panner.connect(audioContext.destination);
+    }
+  });
+
+  audio.play();
+}
+
+startAudio();
