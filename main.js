@@ -23,28 +23,28 @@ function Model(name) {
   this.count = 0;
   this.texCount = 0;
 
-  this.BufferData = function (vertices) {
+  this.BufferData = function(vertices) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
     this.count = vertices.length / 3;
   };
 
-  this.NormalBufferData = function (normals) {
+  this.NormalBufferData = function(normals) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iNormalBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STREAM_DRAW);
 
     this.count = normals.length / 3;
   };
 
-  this.TextureBufferData = function (points) {
+  this.TextureBufferData = function(points) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iTextureBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(points), gl.STREAM_DRAW);
 
     this.texCount = points.length / 2;
   };
 
-  this.Draw = function () {
+  this.Draw = function() {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(shProgram.iAttribVertex);
@@ -59,7 +59,7 @@ function Model(name) {
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.count);
   };
-  this.DrawPoint = function () {
+  this.DrawPoint = function() {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.vertexAttribPointer(shProgram.iAttribVertex, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(shProgram.iAttribVertex);
@@ -89,7 +89,7 @@ function ShaderProgram(name, program) {
 
   this.iTMU = -1;
 
-  this.Use = function () {
+  this.Use = function() {
     gl.useProgram(this.prog);
   };
 }
@@ -112,7 +112,7 @@ function StereoCamera(
   this.mProjectionMatrix = null;
   this.mModelViewMatrix = null;
 
-  this.ApplyLeftFrustum = function () {
+  this.ApplyLeftFrustum = function() {
     let top, bottom, left, right;
     top = this.mNearClippingDistance * Math.tan(this.mFOV / 2);
     bottom = -top;
@@ -142,7 +142,7 @@ function StereoCamera(
     );
   };
 
-  this.ApplyRightFrustum = function () {
+  this.ApplyRightFrustum = function() {
     let top, bottom, left, right;
     top = this.mNearClippingDistance * Math.tan(this.mFOV / 2);
     bottom = -top;
@@ -172,7 +172,7 @@ function StereoCamera(
     );
   };
 
-  this.setSpans = function () {
+  this.setSpans = function() {
     let inputs = document.getElementsByClassName("range");
     let spans = document.getElementsByClassName("value");
     let eyeSep = 70.0;
@@ -198,7 +198,7 @@ function StereoCamera(
  * (Note that the use of the above drawPrimitive function is not an efficient
  * way to draw with WebGL.  Here, the geometry is so simple that it doesn't matter.)
  */
-function draw1(){
+function draw1() {
   draw()
   window.requestAnimationFrame(draw1)
 }
@@ -231,7 +231,7 @@ function draw() {
   gl.uniformMatrix4fv(
     shProgram.iModelViewMatrix,
     false,
-    m4.multiply(m4.scaling(7,7,1),matAccum12)
+    m4.multiply(m4.scaling(7, 7, 1), matAccum12)
   );
   gl.uniformMatrix4fv(
     shProgram.iProjectionMatrix,
@@ -269,10 +269,11 @@ function draw() {
     video
   );
   triangles.Draw();
+  let aclRotation = m4.multiply(m4.axisRotation([1, 0, 0], -0.5 * Math.PI * acl.y * 0.1), m4.axisRotation([0, 1, 0], -0.5 * Math.PI * acl.x * 0.1))
   gl.uniformMatrix4fv(
     shProgram.iModelViewMatrix,
     false,
-    matAccum1
+    m4.multiply(matAccum1, aclRotation)
   );
   sCam.setSpans();
   sCam.ApplyLeftFrustum();
@@ -285,7 +286,7 @@ function draw() {
   gl.colorMask(false, true, true, false);
   surface1.Draw();
   surface2.Draw();
-  
+
   gl.clear(gl.DEPTH_BUFFER_BIT);
   sCam.ApplyRightFrustum();
   gl.uniformMatrix4fv(
@@ -765,10 +766,10 @@ function LoadTexture() {
 }
 
 function getWebcam() {
-  navigator.getUserMedia({ video: true, audio: false }, function (stream) {
+  navigator.getUserMedia({ video: true, audio: false }, function(stream) {
     video.srcObject = stream;
     track = stream.getTracks()[0];
-  }, function (e) {
+  }, function(e) {
     console.error('Rejected!', e);
   });
 }
@@ -781,3 +782,12 @@ function CreateWebCamTexture() {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
+
+const acl = new Accelerometer({ frequency: 60 });
+acl.addEventListener("reading", () => {
+  console.log(`Acceleration along the X-axis ${acl.x}`);
+  console.log(`Acceleration along the Y-axis ${acl.y}`);
+  console.log(`Acceleration along the Z-axis ${acl.z}`);
+});
+
+acl.start();
