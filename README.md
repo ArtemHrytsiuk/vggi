@@ -1,0 +1,1 @@
+![gif](https://github.com/ArtemHrytsiuk/vggi/assets/72602856/b7950504-886a-4386-b0e7-da5e4964c9e1)
